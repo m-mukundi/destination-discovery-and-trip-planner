@@ -17,6 +17,7 @@ import ParkIcon from '@mui/icons-material/Park';
 import WbCloudyIcon from '@mui/icons-material/WbCloudy';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import AirIcon from '@mui/icons-material/Air';
+import OverviewCard from '../components/OverviewCard'; //Wikivoyage overview card
 
 const explore = [
   {
@@ -121,6 +122,8 @@ export default function DestinationPage() {
           >
             {destination.display_name}
           </Typography>
+
+          <OverviewCard name={name} /> 
 
           <Box
             sx={{
