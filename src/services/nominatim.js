@@ -6,7 +6,6 @@ export async function searchDestinations(query) {
     format: "jsonv2",
     addressdetails: "1",
     limit: "5",
-    countrycodes: "ke",
   });
 
   const response = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
