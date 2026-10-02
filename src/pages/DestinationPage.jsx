@@ -18,6 +18,7 @@ import WbCloudyIcon from "@mui/icons-material/WbCloudy";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import AirIcon from "@mui/icons-material/Air";
 import useNearbyPlaces from "../hooks/useNearbyPlaces";
+import OverviewCard from "../components/OverviewCard"; //Wikivoyage overview card
 
 const HINT_PLACE_COUNT = 3;
 
@@ -145,6 +146,8 @@ export default function DestinationPage() {
 						{destination.display_name}
 					</Typography>
 
+					<OverviewCard name={name} />
+
 					<Box
 						sx={{
 							bgcolor: "primary.main",
@@ -176,7 +179,7 @@ export default function DestinationPage() {
 										primary={item.label}
 										secondary={getHint(
 											nearby.status,
-											nearby.categories[item.key]
+											nearby.categories[item.key],
 										)}
 										sx={{
 											"& .MuiListItemText-secondary": {
