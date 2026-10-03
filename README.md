@@ -1,120 +1,164 @@
-# Destination Discovery and Trip Planner
+# Destination Discovery & Trip Planner
 
-## Description
+A React-based destination discovery application that helps users search for destinations and explore useful travel information such as destination overviews and nearby places.
 
-This project is a destination discovery and trip-planning web application that allows users to search for a destination and progressively provides them with more information and functionality as the application develops.
+The application brings together information from multiple public APIs to provide a simple destination discovery experience.
 
-### Phase 1: Destination Discovery
+## Features
 
-The first phase will focus on building a React application that consumes information from several public APIs. The user will enter the name of a destination, and the application will use the destination name to retrieve and display relevant information.
+* Search for destinations by name
+* Search for destinations worldwide
+* Browse popular destination suggestions
+* View real search results from Nominatim
+* Select a destination and view its location information
+* View a destination overview from Wikivoyage
+* Discover nearby:
 
-The application will use *Nominatim* to search for and identify the destination and obtain its geographical information. *Overpass API* will then be used to retrieve points of interest around the destination, such as museums, beaches, parks, restaurants, hotels, and galleries. *Wikivoyage* will provide general destination information and a brief overview of the location. *Open-Meteo* will optionally provide current or forecast weather information for the destination.
+  * Attractions
+  * Nature spots
+  * Food and drinks
+* Retrieve nearby places using the Overpass API
+* Cache nearby-place results during the current session
+* Responsive interface for desktop and smaller screens
 
-The user will therefore be able to search for a destination and receive a consolidated view containing:
+## Technologies
 
-- The name and location of the destination
-- A brief description or overview of the destination
-- Attractions and points of interest
-- Optional weather information
+* **React** — Frontend library
+* **Vite** — Development server and build tool
+* **JavaScript** — Application logic
+* **Material UI** — User interface components and styling
+* **React Router** — Client-side navigation
+* **Nominatim / OpenStreetMap** — Destination search and geographical information
+* **Overpass API / OpenStreetMap** — Nearby places and points of interest
+* **Wikivoyage** — Destination overviews
 
-At the end of this phase, the application will primarily function as a *destination discovery tool*, with the information being retrieved directly from external public APIs.
+## Getting Started
 
-### Phase 2: Introducing Our Own API
+### Prerequisites
 
-In the second phase, the application will introduce a custom backend API that complements or replaces some of the external APIs used in Phase 1.
+Make sure you have the following installed:
 
-The custom API will allow the application to maintain and serve information that is not available through the initial public APIs, including hotel listings, destination ratings, user reviews, and opinions from people who have visited a destination.
+* Node.js
+* npm
+* Git
 
-The application will therefore move from simply aggregating publicly available destination information to maintaining its own destination-related data. The React frontend will consume both the external APIs and the application's own API where appropriate.
+### Installation
 
-### Phase 3: User Accounts and Trip Planning
+Clone the repository:
 
-The third phase will introduce personalized trip-planning functionality. Users will be able to create an account and log in to save and manage their trips.
+```bash
+git clone https://github.com/m-mukundi/destination-discovery-and-trip-planner.git
+```
 
-There will be two main ways for a user to begin using the trip-planning functionality.
+Navigate to the project directory:
 
-First, a user can search for a destination using the destination discovery feature. After viewing the destination information, they will have the option to *Create a Trip* for that destination. They can then select their travel dates, create daily itineraries, save attractions they are interested in, and add personal notes.
+```bash
+cd destination-discovery-and-trip-planner
+```
 
-Alternatively, a user can start by creating a trip and then search for a destination from within the trip-planning experience. Once a destination has been selected, the same destination information and planning features will be available.
+Install the project dependencies:
 
-During the planning process, users will be able to:
+```bash
+npm install
+```
 
-- Set their trip dates
-- Create itineraries for individual days
-- Add attractions and other points of interest to their itinerary
-- Star or save places they are interested in visiting
-- Add personal notes
-- Track the status of their trip, such as planned, in progress, or completed
-- Leave a review after completing their trip
+### Running the Application
 
-The final application will therefore progress from a *destination information and discovery application, to a **destination data platform, and eventually into a **personalized trip-planning application*.
+Start the development server:
 
-## Users
+```bash
+npm run dev
+```
 
-### 1. Visitor / Unauthenticated User
+Vite will provide a local development URL in the terminal. Open that URL in your browser, usually:
 
-A visitor can use the core destination discovery functionality without creating an account.
+```text
+http://localhost:5173
+```
 
-They can:
+## How to Use
 
-- Search for a destination
-- View information about the destination
-- View a description or overview of the destination
-- View attractions and points of interest
-- View available hotels, restaurants, parks, museums, beaches, and galleries
-- View available weather information
+1. Open the application.
+2. Enter a destination in the search bar, or select one of the popular destinations.
+3. Submit the search.
+4. Browse the destinations returned by Nominatim.
+5. Select a destination to open its destination page.
+6. View the destination overview provided by Wikivoyage.
+7. Explore nearby attractions, nature spots, and food and drink locations retrieved through the Overpass API.
 
-### 2. Registered User
+## Application Flow
 
-A registered user has access to personalized trip-planning functionality.
+```text
+Search Destination
+        ↓
+Nominatim
+        ↓
+Search Results
+        ↓
+Select Destination
+        ↓
+Destination Page
+        ↓
+ ┌───────────────┬────────────────┐
+ │               │                │
+Wikivoyage    Overpass       Destination
+Overview       Nearby Places    Details
+```
 
-They can:
+## Project Structure
 
-- Create an account and log in
-- Search for destinations
-- Create a trip for a destination
-- Set trip dates
-- Create daily itineraries
-- Add attractions and points of interest to an itinerary
-- Star/save places they are interested in visiting
-- Add notes to their trip
-- Track the status of their trip
-- View and manage their planned trips
-- Mark trips as in progress or completed
-- Leave a review after completing a trip
+```text
+src/
+├── components/
+│   ├── OverviewCard.jsx
+│   └── WeatherCard.jsx
+├── hooks/
+│   └── useNearbyPlaces.js
+├── pages/
+│   ├── SearchPage.jsx
+│   ├── ResultsPage.jsx
+│   └── DestinationPage.jsx
+├── services/
+│   ├── nominatim.js
+│   ├── overpass.js
+│   └── wikivoyage.js
+├── App.jsx
+├── App.css
+├── index.css
+└── main.jsx
+```
 
-## Minimum Viable Product (Key Features)
+## APIs
 
-The MVP will focus primarily on *Phase 1: Destination Discovery*, while establishing the structure that can later support the application's custom API and trip-planning functionality.
+### Nominatim
 
-- Search for a destination by name
-- Use *Nominatim* to identify and locate the destination
-- Use *Overpass API* to retrieve nearby points of interest
-- Display attractions such as museums, beaches, parks, restaurants, hotels, and galleries
-- Use *Wikivoyage* to provide a brief overview of the destination
-- Use *Open-Meteo* to optionally provide weather information
-- Display the retrieved destination information in a clean, user-friendly React interface
-- Provide a *Create a Trip* entry point that prepares the application for the Phase 3 trip-planning functionality
+Nominatim, provided by OpenStreetMap, is used to search for destinations and obtain geographical information such as:
 
-### Planned Future Features
+* Destination name
+* Coordinates
+* Address information
+* OpenStreetMap identifiers
 
-*Phase 2 — Custom API*
+### Overpass API
 
-- Custom backend API
-- Hotel listings
-- Destination ratings
-- Destination reviews
-- Visitor opinions
-- Integration between the React frontend and the custom API
+The Overpass API is used to retrieve nearby OpenStreetMap points of interest based on the selected destination's coordinates.
 
-*Phase 3 — Trip Planning*
+The application groups nearby places into categories including:
 
-- User registration and authentication
-- Create and manage trips
-- Set trip dates
-- Create day-by-day itineraries
-- Star/save attractions
-- Add notes
-- Track trip status
-- Mark trips as in progress or completed
-- Submit reviews after completing a trip
+* Attractions
+* Nature
+* Food & Drinks
+
+### Wikivoyage
+
+Wikivoyage is used to retrieve a short overview of the selected destination.
+
+The application also provides a source link to the relevant Wikivoyage page.
+
+## Development
+
+This project was developed collaboratively using Git and GitHub.
+
+Features were developed on separate branches, reviewed through pull requests, and merged into the `main` branch after review.
+
+
