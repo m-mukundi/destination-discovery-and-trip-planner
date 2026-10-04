@@ -4,6 +4,10 @@ A React-based destination discovery application that helps users search for dest
 
 The application brings together information from multiple public APIs to provide a simple destination discovery experience.
 
+## Live Demo
+
+The app is deployed at: [https://destination-discovery-and-trip-plan.vercel.app/](https://destination-discovery-and-trip-plan.vercel.app/)
+
 ## Features
 
 * Search for destinations by name
@@ -148,6 +152,8 @@ The application groups nearby places into categories including:
 * Attractions
 * Nature
 * Food & Drinks
+
+> **Note:** Overpass API results can take some time to load, so please give them a moment to appear. Occasionally the results may not load at all, for example when the public Overpass servers are busy. If this happens, try again later.
 
 ### Wikivoyage
 
