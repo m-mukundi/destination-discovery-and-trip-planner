@@ -1,56 +1,23 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
+import { Container, Box, Typography, Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import AttractionsIcon from "@mui/icons-material/Attractions";
-import ParkIcon from "@mui/icons-material/Park";
-import RestaurantIcon from "@mui/icons-material/Restaurant";
-import useNearbyPlaces from "../hooks/useNearbyPlaces";
 import OverviewCard from "../components/OverviewCard"; // Wikivoyage overview card
 import WeatherCard from "../components/WeatherCard";
-
-const HINT_PLACE_COUNT = 3;
-
-const explore = [
-  { key: "attractions", label: "Attractions", icon: <AttractionsIcon /> },
-  { key: "nature", label: "Nature", icon: <ParkIcon /> },
-  { key: "food", label: "Food & Drinks", icon: <RestaurantIcon /> },
-];
-
-function getHint(status, places = []) {
-  if (status === "loading") return "Finding places nearby...";
-  if (status === "error") return "Couldn't load places right now";
-  if (places.length === 0) return "Nothing found nearby";
-
-  return places
-    .slice(0, HINT_PLACE_COUNT)
-    .map((place) => place.name)
-    .join(", ");
-}
+import ExplorePanel from "../components/ExplorePanel";
+import StarButton from "../components/StarButton";
+import { useTrips } from "../context/TripContext";
+import { placeName, placeRegion, readSelectedDestination } from "../utils/place";
 
 export default function DestinationPage() {
   const navigate = useNavigate();
+  const { getTripForDestination, createTrip, updateTrip } = useTrips();
 
-  const storedDestination = sessionStorage.getItem("selectedDestination");
+  const destination = readSelectedDestination();
+  const trip = destination ? getTripForDestination(destination) : null;
 
-  let destination = null;
-
-  try {
-    destination = storedDestination ? JSON.parse(storedDestination) : null;
-  } catch (error) {
-    console.error("Could not read selected destination:", error);
-  }
-
-  const nearby = useNearbyPlaces(destination?.lat, destination?.lon);
+  // Dates picked before a trip exists are kept here and used when the trip is created.
+  const [draftDates, setDraftDates] = useState({ start: null, end: null });
 
   if (!destination) {
     return (
@@ -70,12 +37,26 @@ export default function DestinationPage() {
     );
   }
 
-  const name = destination.name || destination.display_name;
-  const location =
-    destination.address?.county ||
-    destination.address?.state ||
-    destination.address?.country ||
-    "Kenya";
+  const name = placeName(destination);
+  const location = placeRegion(destination);
+
+  const handleCreateTrip = () => {
+    const hasDates = draftDates.start;
+    const id = createTrip(destination, { dates: hasDates ? draftDates : null });
+    navigate(`/trip/${id}`);
+  };
+
+  const calendar = trip
+    ? {
+        value: trip.dates,
+        onChange: (dates) => updateTrip(trip.id, { dates }),
+        markedDates: Object.keys(trip.itinerary),
+      }
+    : {
+        value: draftDates,
+        onChange: setDraftDates,
+        markedDates: [],
+      };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -92,9 +73,23 @@ export default function DestinationPage() {
         }}
       >
         <Box>
-          <Typography variant="h2" component="h1">
-            {name}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            <Typography variant="h2" component="h1">
+              {name}
+            </Typography>
+
+            {trip ? (
+              <Button variant="outlined" onClick={() => navigate(`/trip/${trip.id}`)}>
+                View Trip for This Place
+              </Button>
+            ) : (
+              <Button variant="contained" onClick={handleCreateTrip}>
+                Create My Trip
+              </Button>
+            )}
+
+            <StarButton destination={destination} />
+          </Box>
 
           <Typography color="text.secondary" sx={{ mt: 1, fontSize: 20 }}>
             {location}
@@ -109,47 +104,10 @@ export default function DestinationPage() {
 
           <OverviewCard name={name} />
 
-          <Box
-            sx={{
-              bgcolor: "primary.main",
-              color: "#fff",
-              p: 4,
-              borderRadius: "32px",
-            }}
-          >
-            <Typography variant="h3" sx={{ fontSize: 32, mb: 2 }}>
-              Explore {name}
-            </Typography>
-
-            <List disablePadding>
-              {explore.map((item) => (
-                <ListItemButton
-                  key={item.key}
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    borderRadius: "20px",
-                    mb: 1.5,
-                    py: 2,
-                  }}
-                >
-                  <ListItemIcon sx={{ color: "#fff" }}>{item.icon}</ListItemIcon>
-
-                  <ListItemText
-                    primary={item.label}
-                    secondary={getHint(nearby.status, nearby.categories[item.key])}
-                    sx={{
-                      "& .MuiListItemText-secondary": { color: "#BFE0E0" },
-                    }}
-                  />
-
-                  <ChevronRightIcon />
-                </ListItemButton>
-              ))}
-            </List>
-          </Box>
+          <ExplorePanel name={name} lat={destination.lat} lon={destination.lon} />
         </Box>
 
-        <WeatherCard lat={destination.lat} lon={destination.lon} />
+        <WeatherCard lat={destination.lat} lon={destination.lon} calendar={calendar} />
       </Box>
     </Container>
   );

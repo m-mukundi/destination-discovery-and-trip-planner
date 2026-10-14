@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography, CircularProgress } from "@mui/material";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import WbCloudyIcon from "@mui/icons-material/WbCloudy";
 import GrainIcon from "@mui/icons-material/Grain";
 import ThunderstormIcon from "@mui/icons-material/Thunderstorm";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import AirIcon from "@mui/icons-material/Air";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { getWeather } from "../services/weather";
+import DateRangeCalendar from "./DateRangeCalendar";
 
 function describe(code) {
   if (code === 0) return { label: "Clear sky", Icon: WbSunnyIcon };
@@ -45,9 +47,15 @@ function Stat({ icon, label, value }) {
   );
 }
 
-export default function WeatherCard({ lat, lon }) {
+/**
+ * `calendar` is optional. When given, a calendar icon appears in the header and
+ * opens the date-range calendar inside this same card:
+ *   { value, onChange, markedDates, onDayClick, defaultOpen }
+ */
+export default function WeatherCard({ lat, lon, calendar }) {
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(!!calendar?.defaultOpen);
 
   useEffect(() => {
     if (lat == null || lon == null) return;
@@ -81,16 +89,35 @@ export default function WeatherCard({ lat, lon }) {
         alignSelf: "start",
       }}
     >
-      <Typography
-        sx={{
-          fontWeight: 700,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "primary.main",
-        }}
-      >
-        Weather now
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography
+          sx={{
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "primary.main",
+          }}
+        >
+          Weather now
+        </Typography>
+
+        {calendar && (
+          <Tooltip title={showCalendar ? "Hide calendar" : "Choose trip dates"}>
+            <IconButton
+              aria-label={showCalendar ? "Hide calendar" : "Choose trip dates"}
+              aria-pressed={showCalendar}
+              onClick={() => setShowCalendar((v) => !v)}
+              sx={{
+                color: showCalendar ? "#fff" : "primary.main",
+                bgcolor: showCalendar ? "primary.main" : "transparent",
+                "&:hover": { bgcolor: showCalendar ? "primary.main" : "rgba(11,79,92,0.08)" },
+              }}
+            >
+              <CalendarMonthIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
 
       {error ? (
         <Typography color="error">Could not load weather right now.</Typography>
@@ -110,6 +137,28 @@ export default function WeatherCard({ lat, lon }) {
 
           <Typography sx={{ fontSize: 22, fontWeight: 500 }}>{label}</Typography>
         </>
+      )}
+
+      {calendar && showCalendar && (
+        <Box>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "primary.main",
+              mb: 1,
+            }}
+          >
+            Add dates
+          </Typography>
+          <DateRangeCalendar
+            value={calendar.value}
+            onChange={calendar.onChange}
+            markedDates={calendar.markedDates}
+            onDayClick={calendar.onDayClick}
+          />
+        </Box>
       )}
     </Box>
   );

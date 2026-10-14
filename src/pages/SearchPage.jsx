@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, InputBase, Button, Chip } from '@mui/material';
+import {
+  Box,
+  Container,
+  Typography,
+  InputBase,
+  Button,
+  Chip,
+  IconButton,
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import MenuIcon from '@mui/icons-material/Menu';
 import { searchDestinations } from '../services/nominatim';
+import SideNav from '../components/SideNav';
 
 const popular = ['Mombasa', 'Diani Beach', 'Malindi', 'Lamu'];
 
@@ -12,6 +22,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const search = async (destination) => {
     const trimmedDestination = destination.trim();
@@ -27,15 +38,8 @@ export default function SearchPage() {
     try {
       const results = await searchDestinations(trimmedDestination);
 
-      sessionStorage.setItem(
-        'nominatimResults',
-        JSON.stringify(results)
-      );
-
-      sessionStorage.setItem(
-        'destinationQuery',
-        trimmedDestination
-      );
+      sessionStorage.setItem('nominatimResults', JSON.stringify(results));
+      sessionStorage.setItem('destinationQuery', trimmedDestination);
 
       navigate('/results');
     } catch (err) {
@@ -66,9 +70,34 @@ export default function SearchPage() {
         justifyContent: 'center',
         alignItems: 'center',
         textAlign: 'center',
-        gap: 3
+        gap: 3,
       }}
     >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 24,
+          right: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+        }}
+      >
+        <Button variant="contained" onClick={() => navigate('/trips/new')}>
+          Create a Trip
+        </Button>
+
+        <IconButton
+          aria-label="Open menu"
+          onClick={() => setMenuOpen(true)}
+          sx={{ color: 'primary.main' }}
+        >
+          <MenuIcon fontSize="large" />
+        </IconButton>
+      </Box>
+
+      <SideNav open={menuOpen} onClose={() => setMenuOpen(false)} />
+
       <Typography variant="h2" component="h1">
         Search for a destination
       </Typography>
@@ -93,7 +122,7 @@ export default function SearchPage() {
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: '40px',
-          boxShadow: '0 8px 24px rgba(11,79,92,0.12)'
+          boxShadow: '0 8px 24px rgba(11,79,92,0.12)',
         }}
       >
         <SearchIcon color="action" />
@@ -103,27 +132,16 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Try Mombasa, Diani or Malindi"
-          inputProps={{
-            'aria-label': 'Search for a destination'
-          }}
+          inputProps={{ 'aria-label': 'Search for a destination' }}
           sx={{ fontSize: 20 }}
         />
 
-        <Button
-          type="submit"
-          variant="contained"
-          size="large"
-          disabled={loading}
-        >
+        <Button type="submit" variant="contained" size="large" disabled={loading}>
           {loading ? 'Searching...' : 'Search'}
         </Button>
       </Box>
 
-      {error && (
-        <Typography color="error">
-          {error}
-        </Typography>
-      )}
+      {error && <Typography color="error">{error}</Typography>}
 
       <Box
         sx={{
@@ -131,12 +149,10 @@ export default function SearchPage() {
           flexWrap: 'wrap',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 1.5
+          gap: 1.5,
         }}
       >
-        <Typography color="text.secondary">
-          Popular on the coast
-        </Typography>
+        <Typography color="text.secondary">Popular on the coast</Typography>
 
         {popular.map((name) => (
           <Chip
@@ -145,11 +161,7 @@ export default function SearchPage() {
             clickable
             disabled={loading}
             onClick={() => handlePopularDestination(name)}
-            sx={{
-              bgcolor: '#fff',
-              border: '1px solid',
-              borderColor: 'divider'
-            }}
+            sx={{ bgcolor: '#fff', border: '1px solid', borderColor: 'divider' }}
           />
         ))}
       </Box>
