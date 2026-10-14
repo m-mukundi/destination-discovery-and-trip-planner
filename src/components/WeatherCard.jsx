@@ -109,19 +109,6 @@ export default function WeatherCard({ lat, lon }) {
           </Box>
 
           <Typography sx={{ fontSize: 22, fontWeight: 500 }}>{label}</Typography>
-
-          <Box sx={{ display: "flex", gap: 1.5 }}>
-            <Stat
-              icon={<WaterDropIcon />}
-              label="Humidity"
-              value={`${current.relative_humidity_2m}${units.relative_humidity_2m}`}
-            />
-            <Stat
-              icon={<AirIcon />}
-              label="Wind"
-              value={`${Math.round(current.wind_speed_10m)} ${units.wind_speed_10m}`}
-            />
-          </Box>
         </>
       )}
     </Box>
