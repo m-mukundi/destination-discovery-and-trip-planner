@@ -1,31 +1,41 @@
 import { useEffect, useState } from "react";
 import { fetchNearbyPlaces } from "../services/overpass";
 
-// Returns { status: "loading" | "done" | "error", categories }, where
-// categories is { attractions, nature, food } once loaded.
 export default function useNearbyPlaces(lat, lon) {
-	const [state, setState] = useState({ status: "loading", categories: {} });
+  const [state, setState] = useState({
+    status: "loading",
+    categories: {},
+  });
 
-	useEffect(() => {
-		if (lat == null || lon == null) {
-			return;
-		}
+  useEffect(() => {
+    if (lat == null || lon == null) {
+      setState({ status: "error", categories: {} });
+      return;
+    }
 
-		const controller = new AbortController();
+    const controller = new AbortController();
+    let active = true;
 
-		fetchNearbyPlaces(lat, lon, { signal: controller.signal })
-			.then((categories) => setState({ status: "done", categories }))
-			.catch((error) => {
-				if (controller.signal.aborted) {
-					return;
-				}
+    setState({ status: "loading", categories: {} });
 
-				console.error("Overpass search failed:", error);
-				setState({ status: "error", categories: {} });
-			});
+    fetchNearbyPlaces(lat, lon, { signal: controller.signal })
+      .then((categories) => {
+        if (active) {
+          setState({ status: "done", categories });
+        }
+      })
+      .catch((error) => {
+        if (active && error.name !== "AbortError") {
+          console.error("Nearby places request failed:", error);
+          setState({ status: "error", categories: {} });
+        }
+      });
 
-		return () => controller.abort();
-	}, [lat, lon]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [lat, lon]);
 
-	return state;
+  return state;
 }
