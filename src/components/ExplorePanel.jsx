@@ -32,8 +32,9 @@ function getHint(status, places = []) {
 }
 
 // The "Explore <place>" list, shared by the destination page and the trip page.
-export default function ExplorePanel({ name, lat, lon }) {
-  const nearby = useNearbyPlaces(lat, lon);
+// `destinationKey` lets the backend answer from the database for stored places.
+export default function ExplorePanel({ name, lat, lon, destinationKey }) {
+  const nearby = useNearbyPlaces(lat, lon, destinationKey);
 
   return (
     <Box

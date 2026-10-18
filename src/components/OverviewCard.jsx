@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, Skeleton, Link } from '@mui/material';
-import { getDestinationOverview } from '../services/wikivoyage';
+import { getDestinationOverview } from '../services/destinations';
 
-export default function OverviewCard({ name }) {
+// `destinationKey` lets the backend answer from the database for stored places.
+export default function OverviewCard({ name, destinationKey }) {
   const [status, setStatus] = useState('loading'); // loading | success | empty | error
   const [overview, setOverview] = useState(null);
 
@@ -10,7 +11,7 @@ export default function OverviewCard({ name }) {
     let cancelled = false;
     setStatus('loading');
 
-    getDestinationOverview(name)
+    getDestinationOverview(name, destinationKey)
       .then((data) => {
         if (cancelled) return;
         setOverview(data);
@@ -25,7 +26,7 @@ export default function OverviewCard({ name }) {
     return () => {
       cancelled = true;
     };
-  }, [name]);
+  }, [name, destinationKey]);
 
   return (
     <Box

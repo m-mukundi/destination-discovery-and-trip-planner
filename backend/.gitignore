@@ -1,1 +1,6 @@
-backend/cache.db*
+# Paths here are relative to backend/
+venv/
+.venv/
+__pycache__/
+cache.db*
+.env

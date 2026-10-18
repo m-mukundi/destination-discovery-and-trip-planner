@@ -12,6 +12,22 @@ export const placeRegion = (d) =>
 export const selectDestination = (d) =>
   sessionStorage.setItem('selectedDestination', JSON.stringify(d));
 
+// The search a destination was picked from, if it came from the last search.
+// Saving the place sends this along so the other results are stored as
+// related places (saving "Mombasa" also stores "Mombasa County").
+export const readSearchContext = (d) => {
+  try {
+    const results = JSON.parse(sessionStorage.getItem('nominatimResults') || '[]');
+    const query = sessionStorage.getItem('destinationQuery') || '';
+    if (results.some((r) => placeKey(r) === placeKey(d))) {
+      return { query, results };
+    }
+  } catch (error) {
+    console.error('Could not read the last search:', error);
+  }
+  return { query: '', results: [] };
+};
+
 export const readSelectedDestination = () => {
   try {
     const raw = sessionStorage.getItem('selectedDestination');

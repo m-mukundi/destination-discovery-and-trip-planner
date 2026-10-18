@@ -11,7 +11,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { searchDestinations } from '../services/nominatim';
+import { searchDestinations } from '../services/destinations';
 import DestinationCard from '../components/DestinationCard';
 import DateRangeCalendar from '../components/DateRangeCalendar';
 import { useTrips } from '../context/TripContext';
@@ -39,6 +39,7 @@ export default function CreateTripPage() {
   const [selected, setSelected] = useState(null);
   const [stay, setStay] = useState('');
   const [dates, setDates] = useState({ start: null, end: null });
+  const [creating, setCreating] = useState(false);
 
   const existingTrip = selected ? getTripForDestination(selected) : null;
 
@@ -57,19 +58,27 @@ export default function CreateTripPage() {
       setResults(found);
       if (found.length === 0) setError(`No destinations found for "${q}".`);
     } catch (err) {
-      console.error('Nominatim search failed:', err);
+      console.error('Destination search failed:', err);
       setError('Unable to search for destinations. Please try again.');
     } finally {
       setSearching(false);
     }
   };
 
-  const handleCreate = () => {
-    const id = createTrip(selected, {
-      accommodation: stay.trim(),
-      dates: dates.start ? dates : null,
-    });
-    navigate(`/trip/${id}`);
+  const handleCreate = async () => {
+    setCreating(true);
+    setError('');
+    try {
+      const id = await createTrip(selected, {
+        accommodation: stay.trim(),
+        dates: dates.start ? dates : null,
+      });
+      navigate(`/trip/${id}`);
+    } catch (err) {
+      console.error('Could not create trip:', err);
+      setError('Could not create the trip. Please try again.');
+      setCreating(false);
+    }
   };
 
   return (
@@ -197,9 +206,19 @@ export default function CreateTripPage() {
               </Step>
 
               <Box>
-                <Button variant="contained" size="large" onClick={handleCreate}>
-                  Create trip
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleCreate}
+                  disabled={creating}
+                >
+                  {creating ? 'Creating...' : 'Create trip'}
                 </Button>
+                {error && (
+                  <Typography color="error" sx={{ mt: 1.5 }}>
+                    {error}
+                  </Typography>
+                )}
                 <Typography color="text.secondary" sx={{ mt: 1.5 }}>
                   You can add your itinerary on the next screen.
                 </Typography>

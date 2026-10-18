@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchNearbyPlaces } from "../services/overpass";
 
-export default function useNearbyPlaces(lat, lon) {
+export default function useNearbyPlaces(lat, lon, key) {
   const [state, setState] = useState({
     status: "loading",
     categories: {},
@@ -18,7 +18,7 @@ export default function useNearbyPlaces(lat, lon) {
 
     setState({ status: "loading", categories: {} });
 
-    fetchNearbyPlaces(lat, lon, { signal: controller.signal })
+    fetchNearbyPlaces(lat, lon, { signal: controller.signal, key })
       .then((categories) => {
         if (active) {
           setState({ status: "done", categories });
@@ -35,7 +35,7 @@ export default function useNearbyPlaces(lat, lon) {
       active = false;
       controller.abort();
     };
-  }, [lat, lon]);
+  }, [lat, lon, key]);
 
   return state;
 }
