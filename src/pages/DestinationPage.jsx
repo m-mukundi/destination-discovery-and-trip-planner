@@ -7,7 +7,12 @@ import WeatherCard from "../components/WeatherCard";
 import ExplorePanel from "../components/ExplorePanel";
 import StarButton from "../components/StarButton";
 import { useTrips } from "../context/TripContext";
-import { placeName, placeRegion, readSelectedDestination } from "../utils/place";
+import {
+  placeKey,
+  placeName,
+  placeRegion,
+  readSelectedDestination,
+} from "../utils/place";
 
 export default function DestinationPage() {
   const navigate = useNavigate();
@@ -18,6 +23,8 @@ export default function DestinationPage() {
 
   // Dates picked before a trip exists are kept here and used when the trip is created.
   const [draftDates, setDraftDates] = useState({ start: null, end: null });
+  const [creating, setCreating] = useState(false);
+  const [tripError, setTripError] = useState("");
 
   if (!destination) {
     return (
@@ -40,10 +47,20 @@ export default function DestinationPage() {
   const name = placeName(destination);
   const location = placeRegion(destination);
 
-  const handleCreateTrip = () => {
+  const key = placeKey(destination);
+
+  const handleCreateTrip = async () => {
     const hasDates = draftDates.start;
-    const id = createTrip(destination, { dates: hasDates ? draftDates : null });
-    navigate(`/trip/${id}`);
+    setCreating(true);
+    setTripError("");
+    try {
+      const id = await createTrip(destination, { dates: hasDates ? draftDates : null });
+      navigate(`/trip/${id}`);
+    } catch (error) {
+      console.error("Could not create trip:", error);
+      setTripError("Could not create the trip. Please try again.");
+      setCreating(false);
+    }
   };
 
   const calendar = trip
@@ -83,13 +100,19 @@ export default function DestinationPage() {
                 View Trip for This Place
               </Button>
             ) : (
-              <Button variant="contained" onClick={handleCreateTrip}>
-                Create My Trip
+              <Button variant="contained" onClick={handleCreateTrip} disabled={creating}>
+                {creating ? "Creating..." : "Create My Trip"}
               </Button>
             )}
 
             <StarButton destination={destination} />
           </Box>
+
+          {tripError && (
+            <Typography color="error" sx={{ mt: 1 }}>
+              {tripError}
+            </Typography>
+          )}
 
           <Typography color="text.secondary" sx={{ mt: 1, fontSize: 20 }}>
             {location}
@@ -102,9 +125,14 @@ export default function DestinationPage() {
             {destination.display_name}
           </Typography>
 
-          <OverviewCard name={name} />
+          <OverviewCard name={name} destinationKey={key} />
 
-          <ExplorePanel name={name} lat={destination.lat} lon={destination.lon} />
+          <ExplorePanel
+            name={name}
+            lat={destination.lat}
+            lon={destination.lon}
+            destinationKey={key}
+          />
         </Box>
 
         <WeatherCard lat={destination.lat} lon={destination.lon} calendar={calendar} />

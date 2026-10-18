@@ -22,7 +22,9 @@ function wait(ms, signal) {
 	});
 }
 
-export async function fetchNearbyPlaces(lat, lon, { signal } = {}) {
+// `key` (the place's key) lets the backend answer from the database for
+// stored places.
+export async function fetchNearbyPlaces(lat, lon, { signal, key } = {}) {
 	const cacheKey = `${CACHE_KEY_PREFIX}${lat},${lon}`;
 
 	try {
@@ -38,6 +40,9 @@ export async function fetchNearbyPlaces(lat, lon, { signal } = {}) {
 		lat: String(lat),
 		lon: String(lon),
 	});
+	if (key) {
+		params.set("key", key);
+	}
 
 	// The backend answers 502 when every data source failed for this lookup.
 	// That is usually temporary, so retry a couple of times before giving up.

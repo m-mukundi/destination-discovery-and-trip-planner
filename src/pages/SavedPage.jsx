@@ -7,7 +7,7 @@ import { selectDestination } from '../utils/place';
 
 export default function SavedPage() {
   const navigate = useNavigate();
-  const { savedPlaces } = useTrips();
+  const { savedPlaces, status } = useTrips();
 
   const open = (destination) => {
     selectDestination(destination);
@@ -42,10 +42,18 @@ export default function SavedPage() {
             textAlign: 'center',
           }}
         >
-          <Typography variant="h5">No saved places yet</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
-            Tap the star on a destination to keep it here.
-          </Typography>
+          {status === 'loading' && <Typography variant="h5">Loading saved places...</Typography>}
+          {status === 'error' && (
+            <Typography variant="h5">Couldn't load your saved places. Please try again later.</Typography>
+          )}
+          {status === 'ready' && (
+            <>
+              <Typography variant="h5">No saved places yet</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                Tap the star on a destination to keep it here.
+              </Typography>
+            </>
+          )}
         </Box>
       ) : (
         savedPlaces.map((place, index) => (

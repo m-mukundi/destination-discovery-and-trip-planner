@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
-import { searchDestinations } from '../services/nominatim';
+import { searchDestinations } from '../services/destinations';
 import SideNav from '../components/SideNav';
 
 const popular = ['Mombasa', 'Diani Beach', 'Malindi', 'Lamu'];
@@ -43,7 +43,7 @@ export default function SearchPage() {
 
       navigate('/results');
     } catch (err) {
-      console.error('Nominatim search failed:', err);
+      console.error('Destination search failed:', err);
       setError('Unable to search for destinations. Please try again.');
     } finally {
       setLoading(false);

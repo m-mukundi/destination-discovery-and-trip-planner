@@ -8,7 +8,7 @@ import { placeRegion } from '../utils/place';
 
 export default function TripsPage() {
   const navigate = useNavigate();
-  const { trips } = useTrips();
+  const { trips, status } = useTrips();
 
   return (
     <Container
@@ -39,10 +39,18 @@ export default function TripsPage() {
             textAlign: 'center',
           }}
         >
-          <Typography variant="h5">No trips yet</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
-            Create a trip from the home page or from any destination.
-          </Typography>
+          {status === 'loading' && <Typography variant="h5">Loading trips...</Typography>}
+          {status === 'error' && (
+            <Typography variant="h5">Couldn't load your trips. Please try again later.</Typography>
+          )}
+          {status === 'ready' && (
+            <>
+              <Typography variant="h5">No trips yet</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                Create a trip from the home page or from any destination.
+              </Typography>
+            </>
+          )}
         </Box>
       ) : (
         trips.map((trip, index) => (

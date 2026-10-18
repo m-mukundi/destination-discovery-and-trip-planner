@@ -10,8 +10,15 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from flask_cors import CORS
+from flask_migrate import Migrate
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+
+from models import Destination, SearchTerm, db, normalize_term, place_key, utc_now
+from store import get_current_user, saved_place_keys, stored_destination
+from user_routes import create_user_data_blueprint
 
 app = Flask(__name__)
 
@@ -36,6 +43,32 @@ FRONTEND_ORIGINS = [
 ]
 
 CORS(app, resources={r"/api/*": {"origins": FRONTEND_ORIGINS}})
+
+
+def database_url():
+    url = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@localhost:5432/trip_planner",
+    )
+    # Hosting providers usually give postgres:// or postgresql:// URLs;
+    # SQLAlchemy needs the driver name as well.
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+# PostgreSQL: saved places, trips and the destinations they refer to.
+# The SQLite store below only caches API responses.
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url()
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    # Fail fast when PostgreSQL is down, so searches can fall back to the APIs.
+    "connect_args": {"connect_timeout": 3},
+}
+app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+db.init_app(app)
+Migrate(app, db)
 
 # Nominatim's policy asks for a User-Agent that identifies you with contact info.
 CONTACT = os.getenv("APP_CONTACT", "leonnyongesa3@gmail.com")
@@ -262,29 +295,53 @@ def home():
     return jsonify({"message": "Destination Discovery Flask API is running"})
 
 
+def from_database(load, default, what):
+    """Run a database read. If PostgreSQL is unavailable, log it and return
+    `default`, so searching and browsing still work from the APIs. After one
+    failure, the rest of the request skips the database instead of waiting
+    for it again."""
+    if g.get("database_down"):
+        return default
+    try:
+        return load()
+    except SQLAlchemyError:
+        db.session.rollback()
+        g.database_down = True
+        app.logger.exception("Database unavailable for %s", what)
+        return default
+
+
+def check_database():
+    db.session.execute(text("SELECT 1"))
+    return "ok"
+
+
 @app.get("/api/health")
 def health():
+    database = from_database(check_database, "unavailable", "health")
     return jsonify({
         "status": "ok",
+        "database": database,
         "time": datetime.now(timezone.utc).isoformat(),
     })
 
 
 # --------------------------------------------------
-# Destination search: Nominatim
+# Destination search: database first, then Nominatim
 # GET /api/destinations/search?q=Mombasa
+#
+# Places already in PostgreSQL come first, using the stored copy. If the
+# keyword's full result list was stored when a place was saved, Nominatim is
+# not called at all; otherwise it fills in the remaining results.
+# Each result is a Nominatim object plus place_key, source ("database" or
+# "api") and saved (true if the current user saved it).
 # --------------------------------------------------
 
-@app.get("/api/destinations/search")
-def search_destinations():
-    query = request.args.get("q", "").strip()
+MAX_SEARCH_RESULTS = 10
+DATABASE_NAME_MATCHES = 5
 
-    if not query:
-        return jsonify({"error": "A destination query is required"}), 400
 
-    if len(query) > 200:
-        return jsonify({"error": "Search query is too long"}), 400
-
+def search_nominatim(query):
     def load():
         throttle_nominatim()
         return get_json(
@@ -297,12 +354,88 @@ def search_destinations():
             },
         )
 
-    try:
-        results = cached_load(f"nominatim:{query.casefold()}", 3600, load)
-        return jsonify(results)
-    except UPSTREAM_ERRORS:
-        app.logger.exception("Nominatim request failed")
-        return jsonify({"error": "Destination search is unavailable"}), 502
+    return cached_load(f"nominatim:{query.casefold()}", 3600, load)
+
+
+def escape_like(value):
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def stored_search_results(query):
+    """Return (destinations, complete). `complete` means this keyword's whole
+    result list is stored, so there is nothing left to fetch."""
+    term = SearchTerm.query.filter_by(term=normalize_term(query)).first()
+    linked = [result.destination for result in term.results] if term else []
+
+    by_name = (
+        Destination.query
+        .filter(Destination.name.ilike(f"%{escape_like(query)}%", escape="\\"))
+        .order_by(Destination.name)
+        .limit(DATABASE_NAME_MATCHES)
+        .all()
+    )
+    return linked + by_name, term is not None
+
+
+@app.get("/api/destinations/search")
+def search_destinations():
+    query = request.args.get("q", "").strip()
+
+    if not query:
+        return jsonify({"error": "A destination query is required"}), 400
+
+    if len(query) > 200:
+        return jsonify({"error": "Search query is too long"}), 400
+
+    stored, complete = from_database(
+        lambda: stored_search_results(query), ([], False), "search"
+    )
+    saved_keys = from_database(
+        lambda: saved_place_keys(get_current_user()), set(), "saved places"
+    )
+
+    api_results = []
+    if not complete:
+        try:
+            api_results = search_nominatim(query)
+        except UPSTREAM_ERRORS:
+            app.logger.exception("Nominatim request failed")
+            if not stored:
+                return jsonify({"error": "Destination search is unavailable"}), 502
+
+    # API results that are already stored use the stored copy and move up
+    # with the other database results.
+    api_keys = [place_key(result) for result in api_results]
+    known = from_database(
+        lambda: {
+            d.place_key: d
+            for d in Destination.query.filter(Destination.place_key.in_(api_keys))
+        } if api_keys else {},
+        {},
+        "search",
+    )
+    stored += [known[key] for key in api_keys if key in known]
+
+    results = []
+    seen = set()
+
+    def add(place, source):
+        key = place_key(place)
+        if key not in seen:
+            seen.add(key)
+            results.append({
+                **place,
+                "place_key": key,
+                "source": source,
+                "saved": key in saved_keys,
+            })
+
+    for destination in stored:
+        add(destination.raw, "database")
+    for result in api_results:
+        add(result, "api")
+
+    return jsonify(results[:MAX_SEARCH_RESULTS])
 
 
 # --------------------------------------------------
@@ -396,9 +529,36 @@ def load_overview(name):
     return cached_load(f"wikivoyage:{name.casefold()}", 86400, load)
 
 
+def save_details(destination, **fields):
+    """Store fetched details on a destination. A failed write is logged, not
+    raised: the caller already has the data to return."""
+    try:
+        for field, value in fields.items():
+            setattr(destination, field, value)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Could not store details for %s", destination.place_key)
+
+
+def stored_overview(destination):
+    """Overview of a stored destination: from the database, or fetched once
+    and stored. None (no Wikivoyage page) is stored too."""
+    if destination.overview_fetched_at is not None:
+        return destination.overview
+
+    overview = load_overview(destination.name)
+    save_details(destination, overview=overview, overview_fetched_at=utc_now())
+    return overview
+
+
+# GET /api/destinations/overview?name=Mombasa&key=relation-123
+# `key` (a place_key) is optional: when that place is stored, its overview
+# comes from the database instead of Wikivoyage.
 @app.get("/api/destinations/overview")
 def destination_overview():
     name = request.args.get("name", "").strip()
+    key = request.args.get("key", "").strip()
 
     if not name:
         return jsonify({"error": "A destination name is required"}), 400
@@ -406,7 +566,11 @@ def destination_overview():
     if len(name) > 200:
         return jsonify({"error": "Destination name is too long"}), 400
 
+    destination = from_database(lambda: stored_destination(key), None, "overview")
+
     try:
+        if destination is not None:
+            return jsonify(stored_overview(destination))
         return jsonify(load_overview(name))
     except UPSTREAM_ERRORS:
         app.logger.exception("Wikivoyage request failed")
@@ -730,6 +894,23 @@ def load_places(lat, lon, upgrade=False):
     return result
 
 
+def stored_nearby(destination):
+    """Nearby places of a stored destination: from the database, or fetched
+    and stored. Results with a failed category are returned but not stored,
+    so they are fetched again next time."""
+    if destination.nearby_fetched_at is not None:
+        return destination.nearby
+
+    places = load_places(
+        *snap_to_destination(float(destination.lat), float(destination.lon))
+    )
+    if all(value is not None for value in places.values()):
+        save_details(destination, nearby=places, nearby_fetched_at=utc_now())
+    return places
+
+
+# `key` (a place_key) is optional: when that place is stored, its nearby
+# places come from the database instead of Overpass.
 @app.get("/api/places/nearby")
 def nearby_places():
     coordinates = valid_coordinates(
@@ -741,7 +922,12 @@ def nearby_places():
             "error": "Valid lat and lon coordinates are required"
         }), 400
 
+    key = request.args.get("key", "").strip()
+    destination = from_database(lambda: stored_destination(key), None, "nearby places")
+
     try:
+        if destination is not None:
+            return jsonify(stored_nearby(destination))
         return jsonify(load_places(*snap_to_destination(*coordinates)))
     except UPSTREAM_ERRORS:
         return jsonify({"error": "Nearby places are unavailable"}), 502
@@ -897,6 +1083,42 @@ def prefetch_status():
         },
         "destinations": items,
     })
+
+
+# --------------------------------------------------
+# Saved places and trips (PostgreSQL), see user_routes.py
+# --------------------------------------------------
+
+def fetch_details_in_background(destination_id):
+    """Store a destination's overview and nearby places right after it is
+    saved, so opening it later needs no API calls. Weather is always live,
+    so it is not stored."""
+
+    def run():
+        with app.app_context():
+            destination = db.session.get(Destination, destination_id)
+            if destination is None:
+                return
+            for label, step in (
+                ("overview", stored_overview),
+                ("nearby places", stored_nearby),
+            ):
+                try:
+                    step(destination)
+                except UPSTREAM_ERRORS as error:
+                    app.logger.warning(
+                        "Could not fetch %s for %s: %s",
+                        label, destination.place_key, error,
+                    )
+
+    threading.Thread(
+        target=run, name=f"details-{destination_id}", daemon=True
+    ).start()
+
+
+app.register_blueprint(
+    create_user_data_blueprint(on_destination_stored=fetch_details_in_background)
+)
 
 
 if __name__ == "__main__":

@@ -26,8 +26,14 @@ import { formatLong, formatRange, toISO } from '../utils/dates';
 export default function TripPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getTripById, updateTrip, deleteTrip, addItineraryItem, removeItineraryItem } =
-    useTrips();
+  const {
+    status,
+    getTripById,
+    updateTrip,
+    deleteTrip,
+    addItineraryItem,
+    removeItineraryItem,
+  } = useTrips();
 
   const trip = getTripById(id);
 
@@ -38,13 +44,18 @@ export default function TripPage() {
   const [title, setTitle] = useState('');
 
   if (!trip) {
+    const message = {
+      loading: 'Loading trip...',
+      error: "Couldn't load your trips. Please try again later.",
+    }[status] || 'Trip not found';
+
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/trips')}>
           My trips
         </Button>
         <Typography variant="h4" sx={{ mt: 4 }}>
-          Trip not found
+          {message}
         </Typography>
       </Container>
     );
@@ -76,10 +87,14 @@ export default function TripPage() {
     navigate('/destination');
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Delete your trip to ${trip.name}?`)) {
-      deleteTrip(trip.id);
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete your trip to ${trip.name}?`)) return;
+    try {
+      await deleteTrip(trip.id);
       navigate('/trips');
+    } catch (error) {
+      console.error('Could not delete trip:', error);
+      window.alert('Could not delete the trip. Please try again.');
     }
   };
 
@@ -218,9 +233,14 @@ export default function TripPage() {
             </Box>
           </Box>
 
-          <OverviewCard name={trip.name} />
+          <OverviewCard name={trip.name} destinationKey={trip.destinationKey} />
 
-          <ExplorePanel name={trip.name} lat={destination.lat} lon={destination.lon} />
+          <ExplorePanel
+            name={trip.name}
+            lat={destination.lat}
+            lon={destination.lon}
+            destinationKey={trip.destinationKey}
+          />
         </Box>
 
         <WeatherCard lat={destination.lat} lon={destination.lon} calendar={calendar} />
