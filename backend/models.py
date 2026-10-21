@@ -9,8 +9,7 @@ import re
 from datetime import datetime, timezone
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import CheckConstraint, Index, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import CheckConstraint, Index, JSON, UniqueConstraint
 
 db = SQLAlchemy()
 
@@ -56,10 +55,12 @@ class Destination(db.Model):
     display_name = db.Column(db.Text)
     lat = db.Column(db.Numeric(9, 6), nullable=False)
     lon = db.Column(db.Numeric(9, 6), nullable=False)
-    raw = db.Column(JSONB, nullable=False)  # the full Nominatim result
-    overview = db.Column(JSONB)
+    # SQLAlchemy's portable JSON type works in both the local SQLite database
+    # and PostgreSQL (where the production migration uses JSONB).
+    raw = db.Column(JSON, nullable=False)  # the full Nominatim result
+    overview = db.Column(JSON)
     overview_fetched_at = db.Column(db.DateTime(timezone=True))
-    nearby = db.Column(JSONB)
+    nearby = db.Column(JSON)
     nearby_fetched_at = db.Column(db.DateTime(timezone=True))
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(

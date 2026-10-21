@@ -8,9 +8,7 @@ Flask API for destination search, details, saved places and trips.
 
 ## Setup
 
-1. Create a PostgreSQL database, e.g. `createdb trip_planner`.
-2. Copy `.env.example` to `.env` and set `DATABASE_URL`.
-3. Install the dependencies in a virtual environment:
+1. Install the dependencies in a virtual environment:
 
    ```sh
    python -m venv venv
@@ -18,17 +16,15 @@ Flask API for destination search, details, saved places and trips.
    pip install -r requirements.txt
    ```
 
-4. Create the tables:
-
-   ```sh
-   flask --app app db upgrade
-   ```
-
-5. Run the API on http://127.0.0.1:5001 (the Vite dev server forwards `/api` to it):
+2. Run the API on http://127.0.0.1:5001 (the Vite dev server forwards `/api` to it):
 
    ```sh
    python app.py
    ```
+
+   With no configuration, the API creates `trip_planner.db` locally and is
+   ready to use. To use PostgreSQL instead, copy `.env.example` to `.env`, set
+   `DATABASE_URL`, and apply the migrations with `flask --app app db upgrade`.
 
 ## Changing the database
 

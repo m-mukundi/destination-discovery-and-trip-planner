@@ -1,6 +1,7 @@
 """Database helpers shared by the search, details and user-data routes."""
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from models import (
     Destination,
@@ -25,6 +26,13 @@ class InvalidInput(ValueError):
     """The request body is missing something or has a bad value (HTTP 400)."""
 
 
+def dialect_insert(model):
+    """Return an INSERT statement with ON CONFLICT support for the active DB."""
+    if db.session.get_bind().dialect.name == "sqlite":
+        return sqlite_insert(model)
+    return pg_insert(model)
+
+
 def get_current_user():
     """The person making the request.
 
@@ -37,7 +45,7 @@ def get_current_user():
         return user
 
     db.session.execute(
-        pg_insert(User)
+        dialect_insert(User)
         .values(email=GUEST_EMAIL, display_name="Guest", created_at=utc_now())
         .on_conflict_do_nothing()
     )
@@ -88,7 +96,7 @@ def upsert_destination(place):
     }
 
     destination_id = db.session.execute(
-        pg_insert(Destination)
+        dialect_insert(Destination)
         .values(place_key=place_key(place), created_at=utc_now(), **values)
         .on_conflict_do_update(index_elements=["place_key"], set_=values)
         .returning(Destination.id)
@@ -103,7 +111,7 @@ def get_or_create_term(text):
         raise InvalidInput("query must be 1 to 200 characters")
 
     db.session.execute(
-        pg_insert(SearchTerm)
+        dialect_insert(SearchTerm)
         .values(term=term, created_at=utc_now())
         .on_conflict_do_nothing()
     )
@@ -114,7 +122,7 @@ def link_term_results(term, destinations):
     """Record which destinations a keyword returned, in display order."""
     for rank, destination in enumerate(destinations):
         db.session.execute(
-            pg_insert(SearchTermResult)
+        dialect_insert(SearchTermResult)
             .values(search_term_id=term.id, destination_id=destination.id, rank=rank)
             .on_conflict_do_update(
                 index_elements=["search_term_id", "destination_id"],

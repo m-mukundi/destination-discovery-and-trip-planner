@@ -48,7 +48,10 @@ CORS(app, resources={r"/api/*": {"origins": FRONTEND_ORIGINS}})
 def database_url():
     url = os.getenv(
         "DATABASE_URL",
-        "postgresql+psycopg://postgres:postgres@localhost:5432/trip_planner",
+        # A project checkout should work without requiring a separately
+        # installed database. Deployments can still set DATABASE_URL to
+        # PostgreSQL (the production configuration).
+        "sqlite:///" + os.path.join(BASE_DIR, "trip_planner.db").replace("\\", "/"),
     )
     # Hosting providers usually give postgres:// or postgresql:// URLs;
     # SQLAlchemy needs the driver name as well.
@@ -61,14 +64,20 @@ def database_url():
 # PostgreSQL: saved places, trips and the destinations they refer to.
 # The SQLite store below only caches API responses.
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url()
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+if not app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
     # Fail fast when PostgreSQL is down, so searches can fall back to the APIs.
-    "connect_args": {"connect_timeout": 3},
-}
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"]["connect_args"] = {"connect_timeout": 3}
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 db.init_app(app)
 Migrate(app, db)
+
+# PostgreSQL deployments use the committed Alembic migrations. For the
+# self-contained SQLite development database, create the same schema on first
+# start so `npm run dev` plus the API is immediately usable.
+with app.app_context():
+    if db.engine.dialect.name == "sqlite":
+        db.create_all()
 
 # Nominatim's policy asks for a User-Agent that identifies you with contact info.
 CONTACT = os.getenv("APP_CONTACT", "leonnyongesa3@gmail.com")
