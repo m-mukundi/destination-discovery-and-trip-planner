@@ -1,0 +1,45 @@
+{% extends "auth/base_auth.html" %}
+
+{% block title %}Sign in · Aura{% endblock %}
+{% block heading %}Welcome back{% endblock %}
+{% block subtitle %}Please enter your details to sign in{% endblock %}
+
+{% block content %}
+<div class="social-row">
+  <button type="button" class="social-btn" aria-label="Continue with Google">G</button>
+  <button type="button" class="social-btn" aria-label="Continue with Apple">&#63743;</button>
+  <button type="button" class="social-btn" aria-label="Continue with X">X</button>
+</div>
+
+<div class="divider"><span>OR</span></div>
+
+<form class="auth-form" action="#" method="post" novalidate>
+  <div class="field">
+    <label for="identifier">Your Email Address <span class="label-accent">or username</span></label>
+    <input type="text" id="identifier" name="identifier" placeholder="Your Email Address or username" autocomplete="username">
+  </div>
+
+  <div class="field">
+    <label for="password">Password</label>
+    <div class="input-wrap">
+      <input type="password" id="password" name="password" placeholder="••••••••••" autocomplete="current-password">
+      <button type="button" class="toggle-password" data-target="password" aria-label="Show or hide password">👁</button>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="checkbox">
+      <input type="checkbox" name="remember">
+      <span>Remember me</span>
+    </label>
+    <a href="#" class="link-underline">Forgot password?</a>
+  </div>
+
+  <button type="submit" class="btn-primary">Sign in</button>
+</form>
+
+<p class="switch-text">
+  Don't have an account?
+  <a href="{{ url_for('auth.signup') }}" class="link-strong">Sign up</a>
+</p>
+{% endblock %}
