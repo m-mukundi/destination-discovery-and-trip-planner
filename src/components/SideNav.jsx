@@ -3,10 +3,12 @@ import { Box, Button, Drawer, IconButton, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import CardTravelIcon from '@mui/icons-material/CardTravel';
+import LoginIcon from '@mui/icons-material/Login';
 
 const links = [
   { label: 'Saved Places', path: '/saved', icon: <StarBorderIcon /> },
   { label: 'My Trips', path: '/trips', icon: <CardTravelIcon /> },
+  { label: 'Login', path: '/login', icon: <LoginIcon/>},
 ];
 
 export default function SideNav({ open, onClose }) {

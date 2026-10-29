@@ -14,4 +14,4 @@ export function getDestinationOverview(name, key) {
   const params = new URLSearchParams({ name });
   if (key) params.set('key', key);
   return apiRequest(`/destinations/overview?${params}`);
-}
+}                

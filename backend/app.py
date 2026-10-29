@@ -15,7 +15,6 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-
 from models import Destination, SearchTerm, db, normalize_term, place_key, utc_now
 from store import get_current_user, saved_place_keys, stored_destination
 from user_routes import create_user_data_blueprint
