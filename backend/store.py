@@ -1,7 +1,9 @@
 """Database helpers shared by the search, details and user-data routes."""
 
+from flask import session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
 
 from models import (
     Destination,
@@ -15,8 +17,7 @@ from models import (
     utc_now,
 )
 
-# Until accounts exist, everything belongs to this one user.
-GUEST_EMAIL = "guest@localhost"
+
 
 # Fields the API adds to a place; they are not part of the Nominatim record.
 API_ONLY_FIELDS = {"place_key", "source", "saved"}
@@ -34,26 +35,13 @@ def dialect_insert(model):
 
 
 def get_current_user():
-    """The person making the request.
-
-    When login is added, replace this with a lookup from the session or token.
-    Nothing else needs to change: every saved place and trip is already
-    stored against a user.
-    """
-    user = User.query.filter_by(email=GUEST_EMAIL).first()
-    if user:
-        return user
-
-    db.session.execute(
-        dialect_insert(User)
-        .values(email=GUEST_EMAIL, display_name="Guest", created_at=utc_now())
-        .on_conflict_do_nothing()
-    )
-    db.session.commit()
-    return User.query.filter_by(email=GUEST_EMAIL).one()
-
+    """The logged-in user from the session cookie, or None for visitors."""
+    user_id = session.get("user_id")
+    return db.session.get(User, user_id) if user_id else None
 
 def saved_place_keys(user):
+    if user is None:
+        return set()
     rows = (
         db.session.query(Destination.place_key)
         .join(SavedPlace, SavedPlace.destination_id == Destination.id)

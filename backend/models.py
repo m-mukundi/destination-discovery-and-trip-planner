@@ -36,7 +36,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), nullable=False, unique=True)
     display_name = db.Column(db.String(100), nullable=False)
+
+    password_hash = db.Column(db.String(255))
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    def to_dict(self):
+        return {"id": self.id, "email": self.email, "name": self.display_name}
 
 
 class Destination(db.Model):

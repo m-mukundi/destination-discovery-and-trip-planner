@@ -89,6 +89,13 @@ def create_user_data_blueprint(on_destination_stored):
 
     bp = Blueprint("user_data", __name__, url_prefix="/api")
 
+    @bp.before_request
+    def require_login():
+        if request.method == "OPTIONS":  # let CORS preflight through
+            return None
+        if get_current_user() is None:
+            return jsonify({"error": "Please log in"}), 401
+
     @bp.errorhandler(InvalidInput)
     def invalid_input(error):
         db.session.rollback()
