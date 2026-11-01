@@ -8,6 +8,7 @@ import {
 } from 'react';
 import * as userData from '../services/userData';
 import { placeKey, readSearchContext } from '../utils/place';
+import { useAuth } from './AuthContext';
 
 // Saved places and trips used to live in localStorage under this key. They
 // are stored by the backend now, so the old copy is removed.
@@ -16,10 +17,15 @@ const LEGACY_STORAGE_KEY = 'tripPlanner.v1';
 const TripContext = createContext(null);
 
 export function TripProvider({ children }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   const [saved, setSaved] = useState([]); // destinations, newest first
   const [trips, setTrips] = useState([]);
   const [status, setStatus] = useState('loading'); // loading | ready | error
 
+    // Load this person's data when they log in; clear it when they log out, so
+  // nobody ever sees someone else's trips.
   useEffect(() => {
     try {
       localStorage.removeItem(LEGACY_STORAGE_KEY);
@@ -27,7 +33,16 @@ export function TripProvider({ children }) {
       // Storage unavailable: nothing to clean up.
     }
 
+    setSaved([]);
+    setTrips([]);
+
+    if (!userId) {
+      setStatus('ready');
+      return undefined;
+    }
+
     let cancelled = false;
+    setStatus('loading');
 
     Promise.all([userData.getSavedPlaces(), userData.getTrips()])
       .then(([savedPlaces, tripList]) => {
@@ -45,7 +60,7 @@ export function TripProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId]);
 
   const replaceTrip = useCallback((trip) => {
     setTrips((ts) => ts.map((t) => (t.id === trip.id ? trip : t)));

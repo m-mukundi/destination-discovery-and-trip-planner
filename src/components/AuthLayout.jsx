@@ -39,7 +39,17 @@ export default function AuthLayout({ title, subtitle, children }) {
 }
 
 // Label above a rounded pill input, like the search bar
-export function PillField({ id, label, type = 'text', placeholder, autoComplete }) {
+// Label above a rounded pill input, like the search bar
+export function PillField({
+  id,
+  label,
+  type = 'text',
+  placeholder,
+  autoComplete,
+  value,
+  onChange,
+  error,
+}) {
   const [show, setShow] = useState(false)
   const isPassword = type === 'password'
 
@@ -60,6 +70,11 @@ export function PillField({ id, label, type = 'text', placeholder, autoComplete 
           type={isPassword && show ? 'text' : type}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          value={value}
+          onChange={onChange}
+          error={Boolean(error)}
+          helperText={error || undefined}
+          FormHelperTextProps={{ sx: { ml: 2.5 } }}
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 999,
@@ -81,7 +96,7 @@ export function PillField({ id, label, type = 'text', placeholder, autoComplete 
             sx={{
               position: 'absolute',
               right: 12,
-              top: '50%',
+              top: 27,
               transform: 'translateY(-50%)',
               minWidth: 0,
               textTransform: 'none',
@@ -94,7 +109,6 @@ export function PillField({ id, label, type = 'text', placeholder, autoComplete 
     </Box>
   )
 }
-
 // Teal pill button, like "Create a Trip"
 export function PillButton({ children, ...props }) {
   return (
