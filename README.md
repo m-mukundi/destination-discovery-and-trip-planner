@@ -45,6 +45,7 @@ Make sure you have the following installed:
 * Node.js
 * npm
 * Git
+* Python 3
 
 ### Installation
 
@@ -68,7 +69,23 @@ npm install
 
 ### Running the Application
 
-Start the development server:
+This app has a React frontend and a Flask API. In one terminal, start the API:
+
+```bash
+cd backend
+python -m venv .venv
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+# macOS/Linux
+# source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+The API uses a local SQLite database automatically. PostgreSQL can be enabled
+for deployment by setting `DATABASE_URL`; see `backend/README.md`.
+
+In a second terminal at the project root, start the frontend:
 
 ```bash
 npm run dev
@@ -79,6 +96,14 @@ Vite will provide a local development URL in the terminal. Open that URL in your
 ```text
 http://localhost:5173
 ```
+
+Production builds send API requests to `https://destination-planner-backend.onrender.com`.
+Set `VITE_API_BASE_URL` in the frontend hosting environment to use a different API.
+Local development continues to use Vite's proxy to `http://127.0.0.1:5001`.
+
+For the deployed frontend, set the backend's `FRONTEND_ORIGINS` to
+`https://destination-discovery-and-trip-plan.vercel.app`. For cross-site login
+cookies, also set `COOKIE_SAMESITE=None` and `COOKIE_SECURE=1` on the backend.
 
 ## How to Use
 

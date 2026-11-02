@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './api';
+
 const CACHE_KEY_PREFIX = "overpassPlaces:";
 const CATEGORIES = ["attractions", "nature", "food"];
 const MAX_ATTEMPTS = 3;
@@ -48,8 +50,9 @@ export async function fetchNearbyPlaces(lat, lon, { signal, key } = {}) {
 	// That is usually temporary, so retry a couple of times before giving up.
 	let response;
 	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-		response = await fetch(`/api/places/nearby?${params.toString()}`, {
+		response = await fetch(`${API_BASE_URL}/api/places/nearby?${params.toString()}`, {
 			signal,
+			credentials: 'include',
 		});
 
 		if (response.status !== 502) break;

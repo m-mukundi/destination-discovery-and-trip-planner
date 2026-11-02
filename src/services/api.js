@@ -1,9 +1,14 @@
-// Requests to the Flask backend. In development Vite forwards /api to it
-// (see vite.config.js).
+// In development Vite forwards /api to the local Flask server. Production
+// builds talk directly to the deployed API.
+export const API_BASE_URL = import.meta.env.DEV
+  ? '/api'
+  : (import.meta.env.VITE_API_BASE_URL || 'https://destination-planner-backend.onrender.com').replace(/\/$/, '');
+
 export async function apiRequest(path, { method = 'GET', body, signal } = {}) {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${API_BASE_URL}/api${path}`, {
     method,
     signal,
+    credentials: 'include',
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
