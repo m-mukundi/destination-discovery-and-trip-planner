@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
 import { IconButton, Tooltip } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
@@ -6,6 +9,8 @@ import { useTrips } from '../context/TripContext';
 // Outlined star = not saved, filled star = saved. Same button everywhere.
 export default function StarButton({ destination, size = 'medium', sx }) {
   const { isSaved, toggleSaved } = useTrips();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const saved = isSaved(destination);
   const label = saved ? 'Remove from saved places' : 'Save this place';
 
@@ -17,6 +22,10 @@ export default function StarButton({ destination, size = 'medium', sx }) {
         size={size}
         onClick={(e) => {
           e.stopPropagation();
+          if (!user) {
+            navigate('/login');
+            return;
+          }
           toggleSaved(destination);
         }}
         sx={{ color: 'primary.main', ...sx }}

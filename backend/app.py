@@ -6,7 +6,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
 
 import requests
@@ -18,6 +18,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Destination, SearchTerm, db, normalize_term, place_key, utc_now
 from store import get_current_user, saved_place_keys, stored_destination
 from user_routes import create_user_data_blueprint
+from auth_routes import auth_bp
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -41,7 +46,15 @@ FRONTEND_ORIGINS = [
     if origin.strip()
 ]
 
-CORS(app, resources={r"/api/*": {"origins": FRONTEND_ORIGINS}})
+CORS(app, resources={r"/api/*": {"origins": FRONTEND_ORIGINS}}, supports_credentials=True)
+
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("COOKIE_SAMESITE", "Lax")
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("COOKIE_SECURE", "0") == "1"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+if app.config["SECRET_KEY"] == "dev-only-change-me":
+    app.logger.warning("SECRET_KEY is not set; use a real one in production")
 
 
 def database_url():
@@ -1127,6 +1140,7 @@ def fetch_details_in_background(destination_id):
 app.register_blueprint(
     create_user_data_blueprint(on_destination_stored=fetch_details_in_background)
 )
+app.register_blueprint(auth_bp)
 
 
 if __name__ == "__main__":

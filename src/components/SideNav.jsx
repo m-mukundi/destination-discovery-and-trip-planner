@@ -4,19 +4,27 @@ import CloseIcon from '@mui/icons-material/Close';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import CardTravelIcon from '@mui/icons-material/CardTravel';
 import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuth } from '../context/AuthContext';
 
 const links = [
   { label: 'Saved Places', path: '/saved', icon: <StarBorderIcon /> },
   { label: 'My Trips', path: '/trips', icon: <CardTravelIcon /> },
-  { label: 'Login', path: '/login', icon: <LoginIcon/>},
 ];
 
 export default function SideNav({ open, onClose }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const go = (path) => {
     onClose();
     navigate(path);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    onClose();
+    navigate('/');
   };
 
   return (
@@ -44,6 +52,12 @@ export default function SideNav({ open, onClose }) {
         </IconButton>
       </Box>
 
+      {user && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Signed in as {user.name}
+        </Typography>
+      )}
+
       <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {links.map((link) => (
           <Button
@@ -57,6 +71,28 @@ export default function SideNav({ open, onClose }) {
             {link.label}
           </Button>
         ))}
+
+        {user ? (
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            sx={{ justifyContent: 'flex-start' }}
+          >
+            Log out
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<LoginIcon />}
+            onClick={() => go('/login')}
+            sx={{ justifyContent: 'flex-start' }}
+          >
+            Login
+          </Button>
+        )}
       </Box>
     </Drawer>
   );
